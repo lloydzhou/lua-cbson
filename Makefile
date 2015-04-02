@@ -10,6 +10,7 @@
 ## MULTIPLE_THREADS:        Must be set when Lua CJSON may be used in a
 ##                          multi-threaded application. Requries _pthreads_.
 # make LUA_INCLUDE_DIR=/home/lloyd/tmp/ngx_openresty-1.7.10.1/build/luajit-root/usr/local/openresty/luajit/include/luajit-2.1 LUA_CMODULE_DIR=/usr/local/openresty/lualib LUA_MODULE_DIR=/usr/local/openresty/lualib CJSON_CFLAGS="-g -fpic" CC=cc
+# make clean && make LUA_INCLUDE_DIR=/home/lloyd/tmp/ngx_openresty-1.7.10.1/build/luajit-root/usr/local/openresty/luajit/include/luajit-2.1 LUA_CMODULE_DIR=/usr/local/openresty/lualib LUA_MODULE_DIR=/usr/local/openresty/lualib  CJSON_CFLAGS="-I/usr/local/include/libbson-1.0 -g -fpic" CC=cc
 ##### Build defaults #####
 LUA_VERSION =       5.1
 TARGET =            cbson.so
@@ -17,7 +18,9 @@ PREFIX =            /usr/local
 #CFLAGS =            -g -Wall -pedantic -fno-inline
 CFLAGS =            -O3 -Wall -pedantic -DNDEBUG
 CJSON_CFLAGS =      -fpic
-CJSON_LDFLAGS =     -shared -lpthread -lm -llua
+#CJSON_LDFLAGS =     -shared -lpthread -lm 
+#CJSON_LDFLAGS =     -shared --disable-multithread -lpthread -lm -ldl
+CJSON_LDFLAGS =     -shared -fpic --disable-multithread -ldl
 #-lm ./libbson/libbson-1.0.la
 LUA_INCLUDE_DIR =   $(PREFIX)/include
 LUA_CMODULE_DIR =   $(PREFIX)/lib/lua/$(LUA_VERSION)
@@ -99,7 +102,8 @@ all: $(TARGET)
 doc: manual.html performance.html
 
 $(TARGET): $(OBJS)
-	$(CC) $(LDFLAGS) $(CJSON_LDFLAGS) -o $@ $(OBJS) libbson.a libyajl.a
+	$(CC) $(LDFLAGS) $(CJSON_LDFLAGS) -o $@ $(OBJS) libbson-1.0.so
+#libbson.a libyajl.a
 
 install: $(TARGET)
 	mkdir -p $(DESTDIR)/$(LUA_CMODULE_DIR)

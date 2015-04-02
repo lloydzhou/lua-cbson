@@ -4,7 +4,6 @@
 #include <limits.h>
 #include <lua.h>
 #include <lauxlib.h>
-/*#include "libbson/src/bson/bson.h"*/
 #include <bson.h>
 
 #ifndef CBSON_MODNAME
@@ -18,10 +17,18 @@
 
 /* ===== DECODING ===== */
 
+typedef struct {
+    lua_State *l;
+    bool isobj;
+} cbson_state;
+
 static bool cbson_visit_document (const bson_iter_t *iter, const char *key, const bson_t *v_document, void *data);
 static bool cbson_visit_array (const bson_iter_t *iter, const char *key, const bson_t *v_array, void *data);
 
 static bool cbson_visit_utf8 (const bson_iter_t *iter, const char *key, size_t v_utf8_len, const char *v_utf8, void *data){
+    lua_pushstring(data, key);
+    lua_pushlstring(data, v_utf8, v_utf8_len);
+    lua_rawset(data, -3);
     return false;
 }
 
@@ -53,16 +60,24 @@ static const bson_visitor_t cbson_visitors = {
 };
 
 static bool cbson_visit_document (const bson_iter_t *iter, const char *key, const bson_t *v_document, void *data){
-    if (bson_iter_init(iter, v_document)){
-        bson_iter_visit_all(iter, &cbson_visitors, data);
+    bson_iter_t iter_new;
+    lua_pushstring(data, key);
+    lua_newtable(data);
+    if (bson_iter_init(&iter_new, v_document)){
+        bson_iter_visit_all(&iter_new, &cbson_visitors, data);
     }
+    lua_rawset(data, -3);
     return false;
 }
 
 static bool cbson_visit_array (const bson_iter_t *iter, const char *key, const bson_t *v_array, void *data){
-    if (bson_iter_init(iter, v_array)){
-        bson_iter_visit_all(iter, &cbson_visitors, data);
+    bson_iter_t iter_new;
+    lua_pushstring(data, key);
+    lua_newtable(data);
+    if (bson_iter_init(&iter_new, v_array)){
+        bson_iter_visit_all(&iter_new, &cbson_visitors, data);
     }
+    lua_rawset(data, -3);
     return false;
 }
 
@@ -70,13 +85,15 @@ static bool cbson_visit_array (const bson_iter_t *iter, const char *key, const b
 static int bson_decode(lua_State *l)
 {
     bson_t *bson;
+    cbson_state s;
     bson_iter_t iter;
     luaL_argcheck(l, lua_gettop(l) == 1, 1, "expected 1 argument");
     bson = lua_topointer(l, 1);
-    lua_pushlstring(l, "hello", 5);
-    
+    s.l = l;
+    s.isobj = false;
+
     if (bson_iter_init(&iter, bson)){
-        /*bson_iter_visit_all(&iter, &cbson_visitors, l);*/
+        bson_iter_visit_all(&iter, &cbson_visitors, s.l);
     }
 
     return 1;
