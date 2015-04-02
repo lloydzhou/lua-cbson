@@ -4,6 +4,8 @@
 #include <limits.h>
 #include <lua.h>
 #include <lauxlib.h>
+/*#include "libbson/src/bson/bson.h"*/
+#include <bson.h>
 
 #ifndef CBSON_MODNAME
 #define CBSON_MODNAME   "cbson"
@@ -16,11 +18,66 @@
 
 /* ===== DECODING ===== */
 
+static bool cbson_visit_document (const bson_iter_t *iter, const char *key, const bson_t *v_document, void *data);
+static bool cbson_visit_array (const bson_iter_t *iter, const char *key, const bson_t *v_array, void *data);
+
+static bool cbson_visit_utf8 (const bson_iter_t *iter, const char *key, size_t v_utf8_len, const char *v_utf8, void *data){
+    return false;
+}
+
+static const bson_visitor_t cbson_visitors = {
+       NULL, /* visit_before */
+       NULL, /* visit_after */
+       NULL, /* visit_corrupt */
+       NULL, /* visit_double */
+       cbson_visit_utf8,
+       cbson_visit_document,
+       cbson_visit_array,
+       NULL, /* visit_binary */
+       NULL, /* visit_undefined */
+       NULL, /* visit_oid */
+       NULL, /* visit_bool */
+       NULL, /* visit_date_time */
+       NULL, /* visit_null */
+       NULL, /* visit_regex */
+       NULL, /* visit_dbpointer */
+       NULL, /* visit_code */
+       NULL, /* visit_symbol */
+       NULL, /* visit_codewscope */
+       NULL, /* visit_int32 */
+       NULL, /* visit_timestamp */
+       NULL, /* visit_int64 */
+       NULL, /* visit_maxkey */
+       NULL, /* visit_minkey */
+
+};
+
+static bool cbson_visit_document (const bson_iter_t *iter, const char *key, const bson_t *v_document, void *data){
+    if (bson_iter_init(iter, v_document)){
+        bson_iter_visit_all(iter, &cbson_visitors, data);
+    }
+    return false;
+}
+
+static bool cbson_visit_array (const bson_iter_t *iter, const char *key, const bson_t *v_array, void *data){
+    if (bson_iter_init(iter, v_array)){
+        bson_iter_visit_all(iter, &cbson_visitors, data);
+    }
+    return false;
+}
+
+
 static int bson_decode(lua_State *l)
 {
-
+    bson_t *bson;
+    bson_iter_t iter;
     luaL_argcheck(l, lua_gettop(l) == 1, 1, "expected 1 argument");
+    bson = lua_topointer(l, 1);
     lua_pushlstring(l, "hello", 5);
+    
+    if (bson_iter_init(&iter, bson)){
+        /*bson_iter_visit_all(&iter, &cbson_visitors, l);*/
+    }
 
     return 1;
 }

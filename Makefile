@@ -17,7 +17,8 @@ PREFIX =            /usr/local
 #CFLAGS =            -g -Wall -pedantic -fno-inline
 CFLAGS =            -O3 -Wall -pedantic -DNDEBUG
 CJSON_CFLAGS =      -fpic
-CJSON_LDFLAGS =     -shared
+CJSON_LDFLAGS =     -shared -lpthread -lm -llua
+#-lm ./libbson/libbson-1.0.la
 LUA_INCLUDE_DIR =   $(PREFIX)/include
 LUA_CMODULE_DIR =   $(PREFIX)/lib/lua/$(LUA_VERSION)
 LUA_MODULE_DIR =    $(PREFIX)/share/lua/$(LUA_VERSION)
@@ -98,7 +99,7 @@ all: $(TARGET)
 doc: manual.html performance.html
 
 $(TARGET): $(OBJS)
-	$(CC) $(LDFLAGS) $(CJSON_LDFLAGS) -o $@ $(OBJS)
+	$(CC) $(LDFLAGS) $(CJSON_LDFLAGS) -o $@ $(OBJS) libbson.a libyajl.a
 
 install: $(TARGET)
 	mkdir -p $(DESTDIR)/$(LUA_CMODULE_DIR)
