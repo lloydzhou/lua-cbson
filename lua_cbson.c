@@ -96,7 +96,10 @@ static bool cbson_visit_oid (const bson_iter_t *iter, const char *key, const bso
     char str[25];
     bson_return_val_if_fail (oid, false);
     bson_oid_to_string (oid, str);
+    lua_newtable(s->l);
+    lua_pushlstring(s->l, "$oid", 4);
     lua_pushlstring(s->l, str, 24);
+    lua_rawset(s->l, -3);
     return false;
 }
 
