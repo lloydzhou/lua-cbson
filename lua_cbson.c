@@ -151,29 +151,31 @@ static const bson_visitor_t cbson_visitors = {
 
 static bool cbson_visit_document (const bson_iter_t *iter, const char *key, const bson_t *v_document, void *data){
     bson_iter_t iter_new;
-
     cbson_state *s = data;
-    lua_newtable(s->l);
     cbson_state cs = {0, true};
     if (bson_iter_init(&iter_new, v_document)){
+        lua_newtable(s->l);
         cs.depth = s->depth + 1;
         cs.l = s->l;
         bson_iter_visit_all(&iter_new, &cbson_visitors, &cs);
     }
+    else
+        luaL_error(s->l, "error to init bson iter.");
     return false;
 }
 
 static bool cbson_visit_array (const bson_iter_t *iter, const char *key, const bson_t *v_array, void *data){
     bson_iter_t iter_new;
-
     cbson_state *s = data;
-    lua_newtable(s->l);
     cbson_state cs = {0, false};
     if (bson_iter_init(&iter_new, v_array)){
+        lua_newtable(s->l);
         cs.depth = s->depth + 1;
         cs.l = s->l;
         bson_iter_visit_all(&iter_new, &cbson_visitors, &cs);
     }
+    else
+        luaL_error(s->l, "error to init bson iter.");
     return false;
 }
 
@@ -181,15 +183,19 @@ static bool cbson_visit_array (const bson_iter_t *iter, const char *key, const b
 static int bson_decode(lua_State *l)
 {
     bson_t *bson;
-    cbson_state s = {0, false};
+    cbson_state s = {0, true, 0};
     bson_iter_t iter;
     luaL_argcheck(l, lua_gettop(l) == 1, 1, "expected 1 argument");
-    bson = lua_topointer(l, 1);
-    s.l = l;
+    bson = *(bson_t **)lua_topointer(l, 1);
 
+    lua_pushnil(l);
     if (bson_iter_init(&iter, bson)){
+        lua_newtable(l);
+        s.l = l;
         bson_iter_visit_all(&iter, &cbson_visitors, &s);
     }
+    else
+        luaL_error(l, "error to init bson iter.");
 
     return 1;
 }
