@@ -1,4 +1,4 @@
-##### Available defines for CJSON_CFLAGS #####
+##### Available defines for CBSON_CFLAGS #####
 ##
 ## USE_INTERNAL_ISINF:      Workaround for Solaris platforms missing isinf().
 ## DISABLE_INVALID_NUMBERS: Permanently disable invalid JSON numbers:
@@ -7,21 +7,17 @@
 ## Optional built-in number conversion uses the following defines:
 ## USE_INTERNAL_FPCONV:     Use builtin strtod/dtoa for numeric conversions.
 ## IEEE_BIG_ENDIAN:         Required on big endian architectures.
-## MULTIPLE_THREADS:        Must be set when Lua CJSON may be used in a
+## MULTIPLE_THREADS:        Must be set when Lua CBSON may be used in a
 ##                          multi-threaded application. Requries _pthreads_.
-# make LUA_INCLUDE_DIR=/home/lloyd/tmp/ngx_openresty-1.7.10.1/build/luajit-root/usr/local/openresty/luajit/include/luajit-2.1 LUA_CMODULE_DIR=/usr/local/openresty/lualib LUA_MODULE_DIR=/usr/local/openresty/lualib CJSON_CFLAGS="-g -fpic" CC=cc
-# make clean && make LUA_INCLUDE_DIR=/home/lloyd/tmp/ngx_openresty-1.7.10.1/build/luajit-root/usr/local/openresty/luajit/include/luajit-2.1 LUA_CMODULE_DIR=/usr/local/openresty/lualib LUA_MODULE_DIR=/usr/local/openresty/lualib  CJSON_CFLAGS="-I/usr/local/include/libbson-1.0 -g -fpic" CC=cc
+# make clean && make LUA_INCLUDE_DIR=/usr/local/openresty/luajit/include/luajit-2.1 LUA_CMODULE_DIR=/usr/local/openresty/lualib LUA_MODULE_DIR=/usr/local/openresty/lualib  CBSON_CFLAGS="-I/usr/local/include/libbson-1.0 -g -fpic" CC=cc
 ##### Build defaults #####
 LUA_VERSION =       5.1
 TARGET =            cbson.so
 PREFIX =            /usr/local
 #CFLAGS =            -g -Wall -pedantic -fno-inline
 CFLAGS =            -O3 -Wall -pedantic -DNDEBUG
-CJSON_CFLAGS =      -fpic
-#CJSON_LDFLAGS =     -shared -lpthread -lm 
-#CJSON_LDFLAGS =     -shared --disable-multithread -lpthread -lm -ldl
-CJSON_LDFLAGS =     -shared -fpic --disable-multithread -ldl
-#-lm ./libbson/libbson-1.0.la
+CBSON_CFLAGS =      -fpic
+CBSON_LDFLAGS =     -shared -fpic -lpthread -ldl
 LUA_INCLUDE_DIR =   $(PREFIX)/include
 LUA_CMODULE_DIR =   $(PREFIX)/lib/lua/$(LUA_VERSION)
 LUA_MODULE_DIR =    $(PREFIX)/share/lua/$(LUA_VERSION)
@@ -41,18 +37,18 @@ LUA_BIN_DIR =       $(PREFIX)/bin
 
 ## MacOSX (Macports)
 #PREFIX =            /opt/local
-#CJSON_LDFLAGS =     -bundle -undefined dynamic_lookup
+#CBSON_LDFLAGS =     -bundle -undefined dynamic_lookup
 
 ## Solaris
 #PREFIX =            /home/user/opt
 #CC =                gcc
-#CJSON_CFLAGS =      -fpic -DUSE_INTERNAL_ISINF
+#CBSON_CFLAGS =      -fpic -DUSE_INTERNAL_ISINF
 
 ## Windows (MinGW)
-#TARGET =            cjson.dll
+#TARGET =            cbson.dll
 #PREFIX =            /home/user/opt
-#CJSON_CFLAGS =      -DDISABLE_INVALID_NUMBERS
-#CJSON_LDFLAGS =     -shared -L$(PREFIX)/lib -llua51
+#CBSON_CFLAGS =      -DDISABLE_INVALID_NUMBERS
+#CBSON_LDFLAGS =     -shared -L$(PREFIX)/lib -llua51
 #LUA_BIN_SUFFIX =    .lua
 
 ##### Number conversion configuration #####
@@ -62,66 +58,38 @@ LUA_BIN_DIR =       $(PREFIX)/bin
 
 ## Use built in number conversion
 #FPCONV_OBJS =       g_fmt.o dtoa.o
-#CJSON_CFLAGS +=     -DUSE_INTERNAL_FPCONV
+#CBSON_CFLAGS +=     -DUSE_INTERNAL_FPCONV
 
 ## Compile built in number conversion for big endian architectures
-#CJSON_CFLAGS +=     -DIEEE_BIG_ENDIAN
+#CBSON_CFLAGS +=     -DIEEE_BIG_ENDIAN
 
 ## Compile built in number conversion to support multi-threaded
 ## applications (recommended)
-#CJSON_CFLAGS +=     -pthread -DMULTIPLE_THREADS
-#CJSON_LDFLAGS +=    -pthread
+#CBSON_CFLAGS +=     -pthread -DMULTIPLE_THREADS
+#CBSON_LDFLAGS +=    -pthread
 
 ##### End customisable sections #####
 
-TEST_FILES =        README bench.lua genutf8.pl test.lua octets-escaped.dat \
-                    example1.json example2.json example3.json example4.json \
-                    example5.json numbers.json rfc-example1.json \
-                    rfc-example2.json types.json
-DATAPERM =          644
 EXECPERM =          755
 
-ASCIIDOC =          asciidoc
-
-BUILD_CFLAGS =      -I$(LUA_INCLUDE_DIR) $(CJSON_CFLAGS)
-#OBJS =              lua_cjson.o strbuf.o $(FPCONV_OBJS)
+BUILD_CFLAGS =      -I$(LUA_INCLUDE_DIR) $(CBSON_CFLAGS)
 OBJS =              lua_cbson.o
 
-.PHONY: all clean install install-extra doc
-
-.SUFFIXES: .html .txt
+.PHONY: all clean install
 
 .c.o:
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $(BUILD_CFLAGS) -o $@ $<
 
-.txt.html:
-	$(ASCIIDOC) -n -a toc $<
-
 all: $(TARGET)
 
-doc: manual.html performance.html
-
 $(TARGET): $(OBJS)
-	$(CC) $(LDFLAGS) $(CJSON_LDFLAGS) -o $@ $(OBJS) libbson-1.0.so
-#libbson.a libyajl.a
+	$(CC) $(LDFLAGS) $(CBSON_LDFLAGS) -o $@ $(OBJS) libbson/.libs/libbson-1.0.so
 
 install: $(TARGET)
 	mkdir -p $(DESTDIR)/$(LUA_CMODULE_DIR)
 	rm -f $(DESTDIR)/$(LUA_CMODULE_DIR)/$(TARGET)
 	cp $(TARGET) $(DESTDIR)/$(LUA_CMODULE_DIR)
 	chmod $(EXECPERM) $(DESTDIR)/$(LUA_CMODULE_DIR)/$(TARGET)
-
-install-extra:
-	mkdir -p $(DESTDIR)/$(LUA_MODULE_DIR)/cjson/tests \
-		$(DESTDIR)/$(LUA_BIN_DIR)
-	cp lua/cjson/util.lua $(DESTDIR)/$(LUA_MODULE_DIR)/cjson
-	chmod $(DATAPERM) $(DESTDIR)/$(LUA_MODULE_DIR)/cjson/util.lua
-	cp lua/lua2json.lua $(DESTDIR)/$(LUA_BIN_DIR)/lua2json$(LUA_BIN_SUFFIX)
-	chmod $(EXECPERM) $(DESTDIR)/$(LUA_BIN_DIR)/lua2json$(LUA_BIN_SUFFIX)
-	cp lua/json2lua.lua $(DESTDIR)/$(LUA_BIN_DIR)/json2lua$(LUA_BIN_SUFFIX)
-	chmod $(EXECPERM) $(DESTDIR)/$(LUA_BIN_DIR)/json2lua$(LUA_BIN_SUFFIX)
-	cd tests; cp $(TEST_FILES) $(DESTDIR)/$(LUA_MODULE_DIR)/cjson/tests
-	cd tests; chmod $(DATAPERM) $(TEST_FILES); chmod $(EXECPERM) *.lua *.pl
 
 clean:
 	rm -f *.o $(TARGET)
